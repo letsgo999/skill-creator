@@ -58,7 +58,15 @@ app.post('/api/analyze-pdf', async (c) => {
   }
 
   const arrayBuffer = await file.arrayBuffer()
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+  // 대용량 파일 안전한 base64 변환 (스택 오버플로우 방지)
+  const uint8Array = new Uint8Array(arrayBuffer)
+  let binaryStr = ''
+  const chunkSize = 8192
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length))
+    binaryStr += String.fromCharCode(...chunk)
+  }
+  const base64 = btoa(binaryStr)
 
   const analysisPrompt = `당신은 교육 콘텐츠 분석 전문가입니다. 첨부된 PDF 강의안을 정밀하게 분석하여 다음 정보를 JSON 형식으로 추출해주세요:
 
@@ -100,9 +108,10 @@ app.post('/api/analyze-pdf', async (c) => {
             content: [
               { type: 'text', text: analysisPrompt },
               {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`
+                type: 'file',
+                file: {
+                  filename: file.name || 'document.pdf',
+                  file_data: `data:${file.type || 'application/pdf'};base64,${base64}`
                 }
               }
             ]
@@ -152,11 +161,31 @@ app.post('/api/analyze-pdf', async (c) => {
       result = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
-    // JSON 파싱 시도
-    const jsonMatch = result.match(/\{[\s\S]*\}/)
+    // JSON 파싱 시도 — AI 응답에서 코드블록 제거 후 추출
+    let cleanResult = result.trim()
+    // ```json ... ``` 코드블록 제거
+    cleanResult = cleanResult.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim()
+    
+    // 가장 바깥쪽 중괄호 블록 추출
+    const jsonMatch = cleanResult.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
-      const analysis = JSON.parse(jsonMatch[0])
-      return c.json({ success: true, analysis })
+      try {
+        const analysis = JSON.parse(jsonMatch[0])
+        return c.json({ success: true, analysis })
+      } catch (parseErr: any) {
+        // JSON 파싱 실패 시 — 주석, trailing comma 등 정리 후 재시도
+        let fixedJson = jsonMatch[0]
+          .replace(/,\s*([}\]])/g, '$1')       // trailing comma 제거
+          .replace(/\/\/.*$/gm, '')            // 한줄 주석 제거
+          .replace(/\.\.\.\s*/g, '')           // ... 제거
+          .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":') // 따옴표 없는 키에 따옴표 추가
+        try {
+          const analysis = JSON.parse(fixedJson)
+          return c.json({ success: true, analysis })
+        } catch {
+          return c.json({ success: true, analysis: { raw: result, parseError: parseErr.message } })
+        }
+      }
     } else {
       return c.json({ success: true, analysis: { raw: result } })
     }
