@@ -1,50 +1,94 @@
 # AI 강의안 스킬 생성기
 
-## 프로젝트 개요
-- **프로젝트명**: AI 기반 강의안 SKILL.md 자동 생성기
-- **목적**: PDF/PPTX 강의안 템플릿을 AI로 분석하고, SkillsMP 마켓플레이스에서 유사 스킬을 매칭하여, 맞춤형 SKILL.md 문서를 자동 생성
-- **대상 사용자**: 교육 콘텐츠 제작자, 강사, AI 에이전트 활용자
-- **기술 스택**: Hono + TypeScript + Cloudflare Pages + D1 + TailwindCSS
+PDF/PPTX 강의 템플릿을 AI로 분석하여 동일한 구조와 스타일의 SKILL.md 문서를 자동 생성하는 웹 앱.
 
-## 완성된 기능 (MVP)
-1. **API 키 검증 시스템** - OpenAI(기본) / Gemini(대체) 이중 지원, 실시간 연결 확인
-2. **PDF 구조 분석** - AI 멀티모달 분석 (GPT-4o / Gemini 2.5 Flash)
-3. **SkillsMP 유사 스킬 검색** - AI 시맨틱 검색 + 키워드 검색 폴백
-4. **SKILL.md 자동 생성** - 템플릿 구조 + 매칭 스킬 + 사용자 초안 결합
-5. **결과 관리** - 미리보기 / 마크다운 원본 / 복사 / 다운로드 / DB 저장
-6. **관리자 모드** - 저장된 스킬 검색, 조회, 다운로드, 삭제
+## URLs
+- **Production**: https://skill-creator.pages.dev
+- **GitHub**: https://github.com/letsgo999/skill-creator
 
-## URL 구조
-| 경로 | 설명 |
-|------|------|
-| `/` | 메인 화면 - 스킬 생성 워크플로우 |
-| `/admin` | 관리자 - 저장된 스킬 관리 |
+## 주요 기능
 
-## API 엔드포인트
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/verify-key` | AI API 키 검증 (OpenAI/Gemini) |
-| POST | `/api/analyze-pdf` | PDF 업로드 & AI 구조 분석 |
-| POST | `/api/search-skills` | SkillsMP 유사 스킬 검색 |
-| POST | `/api/generate-skill` | SKILL.md 생성 |
-| POST | `/api/skills/save` | 스킬 DB 저장 |
-| GET | `/api/skills` | 저장된 스킬 목록 (검색/페이징) |
-| GET | `/api/skills/:id` | 스킬 상세 조회 |
-| DELETE | `/api/skills/:id` | 스킬 삭제 |
+### Step 0: AI API 키 입력
+- Claude (Anthropic), OpenAI, Gemini 3종 지원
+- 앱 실행 시 매번 API 키 직접 입력 (보안)
+
+### Step 1: 템플릿 PDF 업로드 & AI 구조 분석
+- PDF/PPTX 파일 드래그&드롭 업로드 (최대 10MB)
+- AI가 슬라이드 구조, 흐름 패턴, 스타일, 핵심 키워드 자동 추출
+
+### Step 2: 참조 스킬 선택
+- **내장 스킬 3개** (Anthropic 공식 스킬 기반, 한국어 강의안 최적화):
+  1. 강의안 슬라이드 생성 스킬 (pptx 스킬 기반)
+  2. 강의안 테마 팩토리 (theme-factory 스킬 기반)
+  3. SKILL.md 작성 전문가 (skill-creator 스킬 기반)
+- **과거 내 스킬 자동 검색**: 키워드 기반 유사도 검색 (D1 DB)
+
+### Step 3: SKILL.md 생성
+- 템플릿 분석 + 참조 스킬 패턴 + 사용자 추가 요구사항 종합
+- 마크다운 미리보기 / 원본 보기 전환
+- 복사, 다운로드, DB 저장
+
+### 관리자 모드 (/admin)
+- 저장된 스킬 검색, 조회, 다운로드, 삭제
+- 페이지네이션 지원
+
+## 아키텍처
+
+### 변경 이력 (v2 리팩토링)
+| 항목 | v1 (이전) | v2 (현재) |
+|---|---|---|
+| 스킬 참조 | SkillsMP 마켓플레이스 API 자동 검색 | 내장 스킬 3개 + 과거 스킬 DB 검색 |
+| API 키 | AI키 + SkillsMP키 2개 필요 | AI키 1개만 필요 |
+| 외부 의존성 | SkillsMP API 호출 필수 | 외부 의존성 없음 (AI API만) |
+| 비용 | AI + SkillsMP 양쪽 비용 | AI 비용만 |
+| 스킬 품질 | 영문 범용 스킬 참조 | 한국어 강의안 특화 스킬 참조 |
+
+### 기술 스택
+- **Backend**: Hono (Cloudflare Workers)
+- **Frontend**: Vanilla JS + Tailwind CSS (CDN)
+- **Database**: Cloudflare D1 (SQLite)
+- **AI**: Claude Sonnet 4 / GPT-4o / Gemini 2.5 Flash
+- **Deployment**: Cloudflare Pages
+
+### API 엔드포인트
+| Method | Path | 설명 |
+|---|---|---|
+| POST | /api/verify-key | AI API 키 검증 |
+| POST | /api/analyze-pdf | PDF 업로드 & AI 구조 분석 |
+| GET | /api/built-in-skills | 내장 스킬 목록 |
+| GET | /api/built-in-skills/:id | 내장 스킬 상세 |
+| POST | /api/skills/search-similar | 과거 스킬 유사도 검색 |
+| POST | /api/generate-skill | SKILL.md 생성 |
+| POST | /api/skills/save | 스킬 DB 저장 |
+| GET | /api/skills | 저장 스킬 목록 (관리자) |
+| GET | /api/skills/:id | 스킬 상세 조회 |
+| DELETE | /api/skills/:id | 스킬 삭제 |
+
+### 데이터 모델
+```sql
+CREATE TABLE skills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  topic TEXT,
+  template_name TEXT,
+  skill_content TEXT NOT NULL,
+  template_analysis TEXT,
+  matched_skills TEXT,
+  tags TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ## 사용 방법
-1. **Step 0**: OpenAI API 키와 SkillsMP API 키를 입력하고 검증
-2. **Step 1**: 분석할 PDF 강의안을 업로드하고 "AI 구조 분석 시작" 클릭
-3. **Step 2**: 추출된 키워드로 SkillsMP에서 유사 스킬 검색
-4. **Step 3**: 필요시 초안 텍스트 추가 후 "SKILL.md 생성하기" 클릭
-5. 결과를 미리보기, 복사, 다운로드 또는 DB에 저장
+1. https://skill-creator.pages.dev 접속
+2. AI 프로바이더 선택 후 API 키 입력 → 검증
+3. 강의안 PDF 업로드 → AI 구조 분석
+4. 내장 참조 스킬 선택 (기본 전체 선택) + 과거 스킬 자동 검색
+5. 추가 요구사항 입력 (선택) → SKILL.md 생성
+6. 미리보기 확인 후 복사/다운로드/DB 저장
 
-## 데이터 아키텍처
-- **DB**: Cloudflare D1 (SQLite)
-- **테이블**: `skills` - 생성된 SKILL.md와 메타데이터 저장
-- **저장 데이터**: 제목, 주제, 템플릿명, 스킬 내용, 분석 결과, 매칭 스킬, 태그
-
-## 배포
-- **플랫폼**: Cloudflare Pages
-- **상태**: 개발 환경 작동 중
-- **마지막 업데이트**: 2026-03-22
+## 배포 정보
+- **Platform**: Cloudflare Pages
+- **D1 Database**: skill-generator-db (7721feff-7207-4a43-a21d-cca94c51cc3c)
+- **Status**: Active
+- **Last Updated**: 2026-03-22
