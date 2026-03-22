@@ -10,6 +10,259 @@ const app = new Hono<{ Bindings: Bindings }>()
 app.use('/api/*', cors())
 
 // ============================================================
+// 내장 스킬 데이터 (Anthropic 공식 스킬 기반 한국어 강의안 최적화)
+// ============================================================
+const BUILT_IN_SKILLS = [
+  {
+    id: 'lecture-slide-generator',
+    name: '강의안 슬라이드 생성 스킬',
+    source: 'Anthropic pptx 스킬 기반',
+    description: 'PDF/PPTX 강의 템플릿을 분석하여 동일한 구조와 스타일의 새 강의안 슬라이드를 생성하는 스킬. 한국어 교육 콘텐츠에 최적화.',
+    tags: ['강의안', '슬라이드', 'PPTX', '프레젠테이션', '교육'],
+    content: `# 강의안 슬라이드 생성 스킬
+
+## 개요
+이 스킬은 기존 강의안 템플릿(PDF/PPTX)을 분석하여 동일한 구조, 흐름, 톤앤매너로 새로운 강의안 슬라이드를 생성합니다.
+
+## 트리거 조건
+- 사용자가 "강의안", "슬라이드", "프레젠테이션", "교육자료" 생성을 요청할 때
+- 기존 템플릿 파일이 제공되었을 때
+- "이 형식대로 새로 만들어줘" 류의 요청
+
+## 핵심 규칙
+
+### 1. 템플릿 구조 분석
+- **도입부**: 제목 슬라이드, 목차, 학습 목표 (보통 전체의 10-15%)
+- **본론**: 핵심 내용 전달, 사례/예시, 실습 (보통 70-80%)
+- **결론**: 요약, Q&A, 참고자료 (보통 10-15%)
+
+### 2. 슬라이드별 콘텐츠 밀도
+| 슬라이드 유형 | 최대 항목 수 | 비고 |
+|---|---|---|
+| 타이틀 슬라이드 | 제목 1 + 부제 1 | 깔끔하게 |
+| 목차 슬라이드 | 5-7개 항목 | 번호 매기기 |
+| 콘텐츠 슬라이드 | 제목 1 + 불릿 4-6개 | 핵심만 |
+| 이미지+텍스트 | 이미지 1 + 설명 3줄 | 시각 중심 |
+| 비교 슬라이드 | 2-3개 열 비교 | 표 형식 |
+| 요약 슬라이드 | 핵심 3-5개 | 한눈에 |
+
+### 3. 한국어 교육 콘텐츠 특화 규칙
+- 경어체 사용 (합니다/습니다체)
+- 전문 용어는 첫 등장 시 영문 병기 (예: 인공지능(AI))
+- 한 슬라이드 = 한 핵심 메시지 원칙
+- 불릿 포인트는 명사형 종결 또는 간결한 문장형
+- 실습/활용 예시를 반드시 포함
+
+### 4. 디자인 가이드
+- **색상**: 주제에 맞는 전용 색상 팔레트 선택
+- **폰트**: 제목 24-36pt 볼드, 본문 16-20pt
+- **여백**: 상하좌우 최소 0.5인치
+- **시각 요소**: 매 슬라이드에 아이콘, 도표, 이미지 중 하나 이상
+
+### 5. 작업 흐름
+\`\`\`
+Phase 1: 템플릿 분석 (구조, 흐름, 스타일 추출)
+Phase 2: 콘텐츠 설계 (슬라이드 구성안 작성)
+Phase 3: 슬라이드 생성 (디자인 시스템 적용)
+Phase 4: 품질 검증 (접근성, 일관성, 가독성)
+Phase 5: 최종 출력 (PPTX/HTML 생성)
+\`\`\`
+
+## 출력 형식
+- 단일 PPTX 파일 또는 자체 완결형 HTML
+- 발표자 노트 포함
+- 접근성 준수 (WCAG 2.1 AA)`
+  },
+  {
+    id: 'lecture-theme-factory',
+    name: '강의안 테마 팩토리',
+    source: 'Anthropic theme-factory 스킬 기반',
+    description: '강의안에 적용할 수 있는 전문 테마(색상 팔레트 + 폰트 조합)를 제공하고 적용하는 스킬. 한국어 교육/기업 환경에 맞춤.',
+    tags: ['테마', '디자인', '색상', '폰트', '스타일링'],
+    content: `# 강의안 테마 팩토리
+
+## 개요
+강의안/프레젠테이션에 전문적인 시각 테마를 적용하는 도구입니다. 10개의 프리셋 테마 + 커스텀 테마 생성을 지원합니다.
+
+## 트리거 조건
+- 강의안의 디자인/스타일링이 필요할 때
+- "테마 적용", "색상 변경", "디자인 꾸미기" 요청 시
+- 새 강의안 생성 시 Phase 3에서 자동 참조
+
+## 한국어 교육용 테마 프리셋
+
+### 1. 전문 강의 (Professional Lecture)
+| 요소 | 값 |
+|---|---|
+| Primary | \`#1E3A5F\` (네이비) |
+| Secondary | \`#4A90D9\` (스카이블루) |
+| Accent | \`#F5A623\` (골드) |
+| Background | \`#F8F9FA\` (라이트그레이) |
+| 제목 폰트 | 나눔스퀘어 Bold / Arial Black |
+| 본문 폰트 | 나눔고딕 / Calibri |
+
+### 2. 테크 이노베이션 (Tech Innovation)
+| 요소 | 값 |
+|---|---|
+| Primary | \`#6C5CE7\` (퍼플) |
+| Secondary | \`#00CEC9\` (시안) |
+| Accent | \`#FD79A8\` (핑크) |
+| Background | \`#2D3436\` (다크) |
+| 제목 폰트 | Pretendard Bold / Arial |
+| 본문 폰트 | Pretendard / Calibri |
+
+### 3. AI/디지털 (AI & Digital)
+| 요소 | 값 |
+|---|---|
+| Primary | \`#667EEA\` (인디고) |
+| Secondary | \`#764BA2\` (바이올렛) |
+| Accent | \`#F093FB\` (라벤더) |
+| Background | \`#FFFFFF\` |
+| 제목 폰트 | 나눔스퀘어 ExtraBold |
+| 본문 폰트 | 나눔고딕 Light |
+
+### 4. 비즈니스 클래식 (Business Classic)
+| 요소 | 값 |
+|---|---|
+| Primary | \`#2C3E50\` (미드나이트) |
+| Secondary | \`#E74C3C\` (레드) |
+| Accent | \`#F39C12\` (오렌지) |
+| Background | \`#ECF0F1\` |
+| 제목 폰트 | Georgia / 나눔명조 Bold |
+| 본문 폰트 | Calibri / 나눔고딕 |
+
+### 5. 교육 프렌들리 (Education Friendly)
+| 요소 | 값 |
+|---|---|
+| Primary | \`#27AE60\` (그린) |
+| Secondary | \`#3498DB\` (블루) |
+| Accent | \`#F1C40F\` (옐로) |
+| Background | \`#FEFEFE\` |
+| 제목 폰트 | 나눔스퀘어라운드 Bold |
+| 본문 폰트 | 나눔고딕 |
+
+### 6-10: 추가 테마
+- **미니멀 모던**: 무채색 + 포인트 1색
+- **웜 테라코타**: 따뜻한 어스톤
+- **오션 블루**: 해양 그라디언트
+- **포레스트 캄**: 자연 초록 계열
+- **미드나이트 갤럭시**: 다크 우주 테마
+
+## 커스텀 테마 생성
+사용자 입력(주제, 분위기, 대상)에 기반하여 새 테마를 생성합니다.
+1. 주제 키워드에서 색상 도출
+2. 대상 청중에 맞는 폰트 선택
+3. 3개 시안 생성 → 선택 → 적용
+
+## 적용 규칙
+- 주색(Primary)이 전체 시각 비중의 60-70%
+- 보조색(Secondary) 20-30%
+- 강조색(Accent) 5-10%
+- 타이틀 + 결론 슬라이드는 다크 배경, 콘텐츠는 라이트 배경
+- WCAG 2.1 AA 대비율 4.5:1 이상 준수`
+  },
+  {
+    id: 'skill-md-creator',
+    name: 'SKILL.md 작성 전문가',
+    source: 'Anthropic skill-creator 스킬 기반',
+    description: '표준 SKILL.md 포맷에 맞는 고품질 스킬 문서를 작성하는 전문 스킬. 트리거 조건, 작업 흐름, 출력 형식을 체계적으로 구성.',
+    tags: ['SKILL.md', '스킬 작성', '문서 생성', 'AI 에이전트'],
+    content: `# SKILL.md 작성 전문가
+
+## 개요
+AI 에이전트(Claude, ChatGPT, Codex 등)가 즉시 사용할 수 있는 표준 SKILL.md 문서를 작성합니다.
+
+## 트리거 조건
+- "스킬 만들어줘", "SKILL.md 생성" 요청 시
+- 기존 워크플로우를 스킬로 변환하고 싶을 때
+- 템플릿 분석 후 재사용 가능한 스킬 문서화가 필요할 때
+
+## SKILL.md 표준 구조
+
+\`\`\`yaml
+---
+name: 스킬-이름
+description: "트리거 조건과 용도를 구체적으로 설명. 
+  이 스킬이 어떤 상황에서 활성화되는지, 어떤 키워드에 반응하는지 명시."
+version: 1.0.0
+tags: [태그1, 태그2]
+---
+\`\`\`
+
+### 필수 섹션
+
+1. **개요 (Overview)**
+   - 스킬이 하는 일 한 문장 요약
+   - 핵심 가치 제안
+
+2. **트리거 조건 (When to Use)**
+   - 구체적인 사용자 발화 패턴
+   - 파일 유형이나 컨텍스트 조건
+   - "~할 때 이 스킬을 사용하세요" 형태로 명시적 기술
+
+3. **핵심 규칙 (Core Rules)**
+   - 반드시 지켜야 할 원칙들
+   - 제약 조건과 금지 사항
+   - 이유(WHY)를 함께 설명
+
+4. **작업 흐름 (Workflow/Phases)**
+   - 단계별 실행 순서
+   - 각 단계의 입력/출력
+   - 예상 소요 시간
+
+5. **출력 형식 (Output Format)**
+   - 구체적인 결과물 형태
+   - 파일 형식, 구조, 명명 규칙
+
+### 선택 섹션
+- 예시 (Examples)
+- 품질 검증 (QA)
+- 의존성 (Dependencies)
+- 참고 자료 (References)
+
+## 작성 원칙
+
+### 1. 명령형 작성
+"~해야 합니다" 대신 "~하세요" 형태의 직접적 지시
+\`\`\`
+❌ "제목은 36pt 이상이어야 합니다"
+✅ "제목은 36pt 이상으로 설정하세요"
+\`\`\`
+
+### 2. WHY 설명
+무조건적인 MUST/NEVER 대신 이유를 설명
+\`\`\`
+❌ "절대 한 슬라이드에 7개 이상 불릿을 넣지 마세요"
+✅ "한 슬라이드의 불릿은 4-6개로 제한하세요. 7개를 넘으면 
+   청중이 핵심 메시지를 파악하기 어렵습니다."
+\`\`\`
+
+### 3. Progressive Disclosure
+- SKILL.md 본문은 500줄 이내
+- 상세 참고 자료는 별도 파일로 분리
+- 큰 참고 파일(300줄+)에는 목차 포함
+
+### 4. 구체적 트리거 설명
+스킬이 활성화되어야 하는 상황을 최대한 구체적으로
+\`\`\`
+❌ "프레젠테이션 관련 작업 시 사용"
+✅ "사용자가 '강의안', '슬라이드', '발표자료'를 언급하거나,
+   .pptx/.pdf 파일을 제공하며 '이 형식으로 만들어줘'라고 
+   요청할 때 사용. 단순 파일 읽기가 아닌 새 콘텐츠 생성이 
+   필요한 경우에 활성화."
+\`\`\`
+
+## 품질 체크리스트
+- [ ] 트리거 조건이 구체적인가?
+- [ ] 작업 흐름이 단계별로 명확한가?
+- [ ] 출력 형식이 정확히 정의되었는가?
+- [ ] WHY가 충분히 설명되었는가?
+- [ ] 500줄 이내인가?
+- [ ] 다른 스킬과 트리거 충돌이 없는가?`
+  }
+]
+
+// ============================================================
 // API 라우트들
 // ============================================================
 
@@ -53,7 +306,6 @@ app.post('/api/verify-key', async (c) => {
         return c.json({ valid: false, error: err?.error?.message || `OpenAI 인증 실패 (${res.status})` })
       }
     } else {
-      // Gemini
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
       if (res.ok) {
         return c.json({ valid: true, provider: 'gemini', message: 'Gemini API 키가 정상입니다.' })
@@ -78,7 +330,6 @@ app.post('/api/analyze-pdf', async (c) => {
   }
 
   const arrayBuffer = await file.arrayBuffer()
-  // 대용량 파일 안전한 base64 변환 (스택 오버플로우 방지)
   const uint8Array = new Uint8Array(arrayBuffer)
   let binaryStr = ''
   const chunkSize = 8192
@@ -99,14 +350,14 @@ app.post('/api/analyze-pdf', async (c) => {
     "mainContent": ["본론 슬라이드 요약들"],
     "conclusion": ["결론 슬라이드 요약들"]
   },
-  "keyTopics": ["핵심 키워드1", "핵심 키워드2", ...],
-  "flowPattern": "논리 전개 패턴 설명 (도입-전개-결론 패턴)",
+  "keyTopics": ["핵심 키워드1", "핵심 키워드2"],
+  "flowPattern": "논리 전개 패턴 설명",
   "styleAnalysis": {
-    "toneAndManner": "어조와 매너 (예: 전문적, 친근한 등)",
-    "contentDensity": "콘텐츠 밀도 (예: 텍스트 중심, 시각 자료 중심 등)",
-    "audienceLevel": "대상 청중 수준 (예: 초급, 중급, 고급)"
+    "toneAndManner": "어조와 매너",
+    "contentDensity": "콘텐츠 밀도",
+    "audienceLevel": "대상 청중 수준"
   },
-  "searchKeywords": ["SkillsMP 검색에 사용할 키워드1", "키워드2", "키워드3"]
+  "searchKeywords": ["검색용 키워드1", "키워드2", "키워드3"]
 }
 
 반드시 유효한 JSON만 출력하세요. 다른 텍스트는 포함하지 마세요.`
@@ -130,11 +381,7 @@ app.post('/api/analyze-pdf', async (c) => {
             content: [
               {
                 type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: base64
-                }
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
               },
               { type: 'text', text: analysisPrompt }
             ]
@@ -146,7 +393,6 @@ app.post('/api/analyze-pdf', async (c) => {
         const errBody = await res.text()
         return c.json({ error: `Claude API 오류 (${res.status}): ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.content?.[0]?.text || ''
     } else if (provider === 'openai') {
@@ -180,11 +426,9 @@ app.post('/api/analyze-pdf', async (c) => {
         const errBody = await res.text()
         return c.json({ error: `OpenAI API 오류 (${res.status}): ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.choices?.[0]?.message?.content || ''
     } else {
-      // Gemini
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,18 +436,10 @@ app.post('/api/analyze-pdf', async (c) => {
           contents: [{
             parts: [
               { text: analysisPrompt },
-              {
-                inline_data: {
-                  mime_type: 'application/pdf',
-                  data: base64
-                }
-              }
+              { inline_data: { mime_type: 'application/pdf', data: base64 } }
             ]
           }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 4000
-          }
+          generationConfig: { temperature: 0.2, maxOutputTokens: 4000 }
         })
       })
 
@@ -211,29 +447,25 @@ app.post('/api/analyze-pdf', async (c) => {
         const errBody = await res.text()
         return c.json({ error: `Gemini API 오류 (${res.status}): ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
-    // JSON 파싱 시도 — AI 응답에서 코드블록 제거 후 추출
+    // JSON 파싱
     let cleanResult = result.trim()
-    // ```json ... ``` 코드블록 제거
-    cleanResult = cleanResult.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/,'').trim()
-    
-    // 가장 바깥쪽 중괄호 블록 추출
+    cleanResult = cleanResult.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+
     const jsonMatch = cleanResult.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       try {
         const analysis = JSON.parse(jsonMatch[0])
         return c.json({ success: true, analysis })
       } catch (parseErr: any) {
-        // JSON 파싱 실패 시 — 주석, trailing comma 등 정리 후 재시도
         let fixedJson = jsonMatch[0]
-          .replace(/,\s*([}\]])/g, '$1')       // trailing comma 제거
-          .replace(/\/\/.*$/gm, '')            // 한줄 주석 제거
-          .replace(/\.\.\.\s*/g, '')           // ... 제거
-          .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":') // 따옴표 없는 키에 따옴표 추가
+          .replace(/,\s*([}\]])/g, '$1')
+          .replace(/\/\/.*$/gm, '')
+          .replace(/\.\.\.\s*/g, '')
+          .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
         try {
           const analysis = JSON.parse(fixedJson)
           return c.json({ success: true, analysis })
@@ -249,53 +481,66 @@ app.post('/api/analyze-pdf', async (c) => {
   }
 })
 
-// 3) SkillsMP 검색
-app.post('/api/search-skills', async (c) => {
-  const { keywords, skillsmpApiKey } = await c.req.json<{ keywords: string[]; skillsmpApiKey: string }>()
+// 3) 내장 스킬 목록 조회
+app.get('/api/built-in-skills', (c) => {
+  return c.json({
+    success: true,
+    skills: BUILT_IN_SKILLS.map(s => ({
+      id: s.id,
+      name: s.name,
+      source: s.source,
+      description: s.description,
+      tags: s.tags
+    }))
+  })
+})
 
-  if (!keywords?.length || !skillsmpApiKey) {
-    return c.json({ error: '검색 키워드와 SkillsMP API 키가 필요합니다.' }, 400)
+// 4) 내장 스킬 상세 조회
+app.get('/api/built-in-skills/:id', (c) => {
+  const id = c.req.param('id')
+  const skill = BUILT_IN_SKILLS.find(s => s.id === id)
+  if (!skill) return c.json({ error: '내장 스킬을 찾을 수 없습니다.' }, 404)
+  return c.json({ success: true, skill })
+})
+
+// 5) 과거 내 스킬 유사도 검색
+app.post('/api/skills/search-similar', async (c) => {
+  const { keywords } = await c.req.json<{ keywords: string[] }>()
+
+  if (!keywords?.length) {
+    return c.json({ error: '검색 키워드가 필요합니다.' }, 400)
   }
 
   try {
-    const searchQuery = keywords.join(' ') + ' presentation slide'
-    const res = await fetch(`https://skillsmp.com/api/v1/skills/ai-search?q=${encodeURIComponent(searchQuery)}`, {
-      headers: {
-        'Authorization': `Bearer ${skillsmpApiKey}`,
-        'Accept': 'application/json'
-      }
+    // 키워드 기반 LIKE 검색 (D1은 FTS 미지원이므로 LIKE 조합)
+    const conditions = keywords.map(() => '(title LIKE ? OR topic LIKE ? OR tags LIKE ? OR skill_content LIKE ?)').join(' OR ')
+    const bindings: string[] = []
+    keywords.forEach(k => {
+      const like = `%${k}%`
+      bindings.push(like, like, like, like)
     })
 
-    if (!res.ok) {
-      // fallback: 키워드 검색
-      const res2 = await fetch(`https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(searchQuery)}&limit=10&sortBy=stars`, {
-        headers: {
-          'Authorization': `Bearer ${skillsmpApiKey}`,
-          'Accept': 'application/json'
-        }
-      })
+    const results = await c.env.DB.prepare(
+      `SELECT id, title, topic, template_name, tags, created_at,
+              substr(skill_content, 1, 200) as preview
+       FROM skills
+       WHERE ${conditions}
+       ORDER BY created_at DESC
+       LIMIT 10`
+    ).bind(...bindings).all()
 
-      if (!res2.ok) {
-        const errText = await res2.text()
-        return c.json({ error: `SkillsMP API 오류 (${res2.status}): ${errText}` }, 500)
-      }
-
-      const data = await res2.json()
-      return c.json({ success: true, skills: data })
-    }
-
-    const data = await res.json()
-    return c.json({ success: true, skills: data })
+    return c.json({ success: true, skills: results.results })
   } catch (e: any) {
-    return c.json({ error: `SkillsMP 검색 오류: ${e.message}` }, 500)
+    return c.json({ error: `검색 오류: ${e.message}` }, 500)
   }
 })
 
-// 4) SKILL.md 생성
+// 6) SKILL.md 생성 (내장 스킬 패턴 + 과거 스킬 참조)
 app.post('/api/generate-skill', async (c) => {
-  const { templateAnalysis, matchedSkills, draftText, apiKey, provider } = await c.req.json<{
+  const { templateAnalysis, selectedBuiltInSkills, pastSkills, draftText, apiKey, provider } = await c.req.json<{
     templateAnalysis: any
-    matchedSkills: any[]
+    selectedBuiltInSkills: string[]
+    pastSkills: any[]
     draftText: string
     apiKey: string
     provider: string
@@ -305,13 +550,19 @@ app.post('/api/generate-skill', async (c) => {
     return c.json({ error: '템플릿 분석 결과와 API 키가 필요합니다.' }, 400)
   }
 
-  const skillsReference = matchedSkills?.length
-    ? `\n\n참조할 인기 스킬 목록:\n${matchedSkills.map((s: any, i: number) => `${i + 1}. ${s.name || s.title || 'N/A'} - ${s.description || ''}`).join('\n')}`
-    : ''
+  // 선택된 내장 스킬 콘텐츠 수집
+  const builtInRef = (selectedBuiltInSkills || [])
+    .map(id => BUILT_IN_SKILLS.find(s => s.id === id))
+    .filter(Boolean)
+    .map((s, i) => `### 내장 참조 스킬 ${i + 1}: ${s!.name}\n${s!.content}`)
+    .join('\n\n')
 
-  const draftSection = draftText
-    ? `\n\n사용자 초안 텍스트:\n${draftText}`
-    : ''
+  // 과거 스킬 참조
+  const pastRef = (pastSkills || [])
+    .map((s: any, i: number) => `### 과거 생성 스킬 ${i + 1}: ${s.title}\n${s.preview || s.skill_content?.substring(0, 300) || ''}`)
+    .join('\n\n')
+
+  const draftSection = draftText ? `\n\n## 사용자 추가 요구사항:\n${draftText}` : ''
 
   const generatePrompt = `당신은 AI 에이전트용 SKILL.md 문서를 작성하는 전문가입니다.
 
@@ -319,16 +570,23 @@ app.post('/api/generate-skill', async (c) => {
 
 ## 분석된 템플릿 구조:
 ${JSON.stringify(templateAnalysis, null, 2)}
-${skillsReference}
+
+${builtInRef ? `## 참조할 내장 스킬 패턴:\n${builtInRef}` : ''}
+
+${pastRef ? `## 참조할 과거 생성 스킬:\n${pastRef}` : ''}
+
 ${draftSection}
 
 ## SKILL.md 작성 규칙:
-1. 표준 SKILL.md 포맷을 따를 것 (name, version, description, triggers, phases)
+1. 표준 SKILL.md 포맷을 따를 것 (YAML frontmatter: name, version, description, tags)
 2. 한국어 강의안 슬라이드 제작에 최적화할 것
 3. 원본 템플릿의 흐름 패턴(도입-전개-결론)과 톤앤매너를 반영할 것
 4. 슬라이드별 콘텐츠 밀도와 시각 자료 배치 가이드를 포함할 것
 5. AI가 이 SKILL.md만 읽고도 동일한 스타일의 강의안을 만들 수 있게 구체적으로 작성할 것
 6. When to Use / Core Rules / Phase별 단계 / Output 형식을 명확히 할 것
+7. 트리거 조건을 구체적으로 작성할 것 (어떤 사용자 발화/상황에서 활성화되는지)
+8. 내장 참조 스킬의 구조와 패턴을 참고하되 템플릿 분석 결과를 우선 반영할 것
+9. 과거 생성 스킬이 있다면 그 스타일과 패턴을 유지하면서 발전시킬 것
 
 출력은 마크다운 SKILL.md 문서 전체를 출력하세요.`
 
@@ -354,7 +612,6 @@ ${draftSection}
         const errBody = await res.text()
         return c.json({ error: `Claude API 오류: ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.content?.[0]?.text || ''
     } else if (provider === 'openai') {
@@ -376,7 +633,6 @@ ${draftSection}
         const errBody = await res.text()
         return c.json({ error: `OpenAI API 오류: ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.choices?.[0]?.message?.content || ''
     } else {
@@ -393,7 +649,6 @@ ${draftSection}
         const errBody = await res.text()
         return c.json({ error: `Gemini API 오류: ${errBody}` }, 500)
       }
-
       const data = await res.json() as any
       result = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
@@ -404,9 +659,9 @@ ${draftSection}
   }
 })
 
-// 5) 스킬 저장 (D1)
+// 7) 스킬 저장 (D1)
 app.post('/api/skills/save', async (c) => {
-  const { title, topic, templateName, skillContent, templateAnalysis, matchedSkills, tags } = await c.req.json()
+  const { title, topic, templateName, skillContent, templateAnalysis, tags } = await c.req.json()
 
   try {
     const result = await c.env.DB.prepare(
@@ -418,7 +673,7 @@ app.post('/api/skills/save', async (c) => {
       templateName || '',
       skillContent,
       JSON.stringify(templateAnalysis || {}),
-      JSON.stringify(matchedSkills || []),
+      '[]',
       tags || ''
     ).run()
 
@@ -428,7 +683,7 @@ app.post('/api/skills/save', async (c) => {
   }
 })
 
-// 6) 저장된 스킬 목록 (관리자)
+// 8) 저장된 스킬 목록 (관리자)
 app.get('/api/skills', async (c) => {
   const query = c.req.query('q') || ''
   const page = parseInt(c.req.query('page') || '1')
@@ -472,7 +727,7 @@ app.get('/api/skills', async (c) => {
   }
 })
 
-// 7) 스킬 상세 조회
+// 9) 스킬 상세 조회
 app.get('/api/skills/:id', async (c) => {
   const id = c.req.param('id')
   try {
@@ -484,7 +739,7 @@ app.get('/api/skills/:id', async (c) => {
   }
 })
 
-// 8) 스킬 삭제
+// 10) 스킬 삭제
 app.delete('/api/skills/:id', async (c) => {
   const id = c.req.param('id')
   try {
@@ -502,7 +757,6 @@ app.get('/', (c) => {
   return c.html(mainHTML)
 })
 
-// 관리자 모드 페이지
 app.get('/admin', (c) => {
   return c.html(adminHTML)
 })
@@ -517,7 +771,6 @@ const mainHTML = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 강의안 스킬 생성기</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -545,6 +798,9 @@ const mainHTML = `<!DOCTYPE html>
     @keyframes spin { to { transform: rotate(360deg); } }
     .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 10px; color: white; font-weight: 500; animation: slideIn 0.3s ease; }
     @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+    .skill-card { transition: all 0.2s; }
+    .skill-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .skill-card.selected { ring: 2px; border-color: #667eea; background: #f0f0ff; }
   </style>
 </head>
 <body class="min-h-screen bg-gray-50">
@@ -557,7 +813,7 @@ const mainHTML = `<!DOCTYPE html>
         </div>
         <div>
           <h1 class="text-2xl font-bold">AI 강의안 스킬 생성기</h1>
-          <p class="text-white/80 text-sm">PPTX/PDF 템플릿 분석 → SkillsMP 매칭 → SKILL.md 자동 생성</p>
+          <p class="text-white/80 text-sm">PDF 템플릿 분석 → 내장 스킬 참조 → SKILL.md 자동 생성</p>
         </div>
       </div>
       <a href="/admin" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm transition">
@@ -571,45 +827,28 @@ const mainHTML = `<!DOCTYPE html>
     <div id="step0" class="glass rounded-2xl p-6 shadow-md mb-6 border-2 border-indigo-400 step-active">
       <div class="flex items-center gap-2 mb-4">
         <span class="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">0</span>
-        <h2 class="text-lg font-bold text-gray-800">API 키 설정</h2>
+        <h2 class="text-lg font-bold text-gray-800">AI API 키 설정</h2>
         <span id="step0Badge" class="hidden bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
           <i class="fas fa-check mr-1"></i>연결 완료
         </span>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-4">
-        <!-- AI API -->
-        <div class="space-y-3">
-          <h3 class="font-semibold text-gray-700"><i class="fas fa-brain mr-1 text-indigo-500"></i> AI API 키</h3>
-          <div class="flex gap-2">
-            <select id="aiProvider" class="border rounded-lg px-3 py-2 text-sm bg-white">
-              <option value="claude">Claude (Anthropic)</option>
-              <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini</option>
-            </select>
-            <input id="aiApiKey" type="password" placeholder="API 키를 입력하세요"
-              class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
-            <button onclick="verifyAiKey()" id="btnVerifyAi"
-              class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
-              검증
-            </button>
-          </div>
-          <p id="aiKeyStatus" class="text-sm text-gray-500">AI 프로바이더를 선택하고 API 키를 입력하세요.</p>
+      <div class="space-y-3">
+        <h3 class="font-semibold text-gray-700"><i class="fas fa-brain mr-1 text-indigo-500"></i> AI 프로바이더 선택 및 API 키 입력</h3>
+        <div class="flex gap-2">
+          <select id="aiProvider" class="border rounded-lg px-3 py-2 text-sm bg-white">
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+          </select>
+          <input id="aiApiKey" type="password" placeholder="API 키를 입력하세요"
+            class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none">
+          <button onclick="verifyAiKey()" id="btnVerifyAi"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+            검증
+          </button>
         </div>
-
-        <!-- SkillsMP API -->
-        <div class="space-y-3">
-          <h3 class="font-semibold text-gray-700"><i class="fas fa-store mr-1 text-purple-500"></i> SkillsMP API 키</h3>
-          <div class="flex gap-2">
-            <input id="skillsmpApiKey" type="password" placeholder="sk_live_skillsmp_..."
-              class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none">
-            <button onclick="verifySkillsmpKey()" id="btnVerifySkillsmp"
-              class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
-              검증
-            </button>
-          </div>
-          <p id="skillsmpKeyStatus" class="text-sm text-gray-500">SkillsMP 마켓플레이스 API 키를 입력하세요.</p>
-        </div>
+        <p id="aiKeyStatus" class="text-sm text-gray-500">AI 프로바이더를 선택하고 API 키를 입력하세요.</p>
       </div>
     </div>
 
@@ -638,31 +877,49 @@ const mainHTML = `<!DOCTYPE html>
         <i class="fas fa-microscope mr-2"></i>AI 구조 분석 시작
       </button>
 
-      <!-- 분석 결과 -->
       <div id="analysisResult" class="hidden mt-4 fade-in">
         <h3 class="font-semibold text-gray-700 mb-2"><i class="fas fa-chart-bar mr-1 text-indigo-500"></i> 분석 결과</h3>
         <div id="analysisContent" class="bg-gray-50 rounded-xl p-4 text-sm space-y-2"></div>
       </div>
     </div>
 
-    <!-- ========== STEP 2: 스킬 검색 ========== -->
+    <!-- ========== STEP 2: 스킬 참조 선택 (내장 + 과거) ========== -->
     <div id="step2" class="glass rounded-2xl p-6 shadow-md mb-6 border-2 border-gray-200 opacity-50 pointer-events-none">
       <div class="flex items-center gap-2 mb-4">
         <span class="bg-gray-400 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" id="step2Num">2</span>
-        <h2 class="text-lg font-bold text-gray-800">SkillsMP 유사 스킬 검색</h2>
+        <h2 class="text-lg font-bold text-gray-800">참조 스킬 선택</h2>
         <span id="step2Badge" class="hidden bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-          <i class="fas fa-check mr-1"></i>검색 완료
+          <i class="fas fa-check mr-1"></i>선택 완료
         </span>
       </div>
-      <div id="searchKeywords" class="flex flex-wrap gap-2 mb-3"></div>
-      <button onclick="searchSkills()" id="btnSearch"
-        class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg font-medium transition">
-        <i class="fas fa-search mr-2"></i>유사 스킬 검색
+
+      <!-- 내장 스킬 -->
+      <div class="mb-6">
+        <h3 class="font-semibold text-gray-700 mb-3">
+          <i class="fas fa-cube mr-1 text-indigo-500"></i> 내장 참조 스킬
+          <span class="text-xs text-gray-400 font-normal ml-2">Anthropic 공식 스킬 기반 · 클릭하여 선택/해제</span>
+        </h3>
+        <div id="builtInSkillList" class="grid md:grid-cols-3 gap-3"></div>
+      </div>
+
+      <!-- 과거 내 스킬 -->
+      <div>
+        <h3 class="font-semibold text-gray-700 mb-3">
+          <i class="fas fa-history mr-1 text-purple-500"></i> 과거 내 스킬 참조
+          <span class="text-xs text-gray-400 font-normal ml-2">DB에 저장된 유사 스킬 자동 검색</span>
+        </h3>
+        <div id="pastSkillsLoading" class="text-sm text-gray-400"><span class="spinner"></span> 유사 스킬 검색 중...</div>
+        <div id="pastSkillList" class="hidden space-y-2"></div>
+        <p id="pastSkillEmpty" class="hidden text-sm text-gray-400"><i class="fas fa-inbox mr-1"></i> 저장된 유사 스킬이 없습니다. 생성 후 저장하면 이후 참조로 활용됩니다.</p>
+      </div>
+
+      <button onclick="confirmSkillSelection()" id="btnConfirmSkills"
+        class="mt-4 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium transition">
+        <i class="fas fa-check mr-2"></i>선택 완료 → 생성 단계로
       </button>
-      <div id="skillResults" class="hidden mt-4 space-y-3 fade-in"></div>
     </div>
 
-    <!-- ========== STEP 3: 초안 & SKILL.md 생성 ========== -->
+    <!-- ========== STEP 3: SKILL.md 생성 ========== -->
     <div id="step3" class="glass rounded-2xl p-6 shadow-md mb-6 border-2 border-gray-200 opacity-50 pointer-events-none">
       <div class="flex items-center gap-2 mb-4">
         <span class="bg-gray-400 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" id="step3Num">3</span>
@@ -670,9 +927,14 @@ const mainHTML = `<!DOCTYPE html>
       </div>
 
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">초안 텍스트 (선택사항)</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">추가 요구사항 (선택)</label>
         <textarea id="draftText" rows="4" placeholder="강의 주제, 핵심 내용, 타겟 청중 등 추가 정보를 입력하세요..."
           class="w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none resize-y"></textarea>
+      </div>
+
+      <!-- 선택된 참조 요약 -->
+      <div id="selectedRefSummary" class="mb-4 p-3 bg-indigo-50 rounded-xl text-sm text-indigo-700 hidden">
+        <i class="fas fa-info-circle mr-1"></i> <span id="refSummaryText"></span>
       </div>
 
       <button onclick="generateSkill()" id="btnGenerate"
@@ -680,7 +942,6 @@ const mainHTML = `<!DOCTYPE html>
         <i class="fas fa-wand-magic-sparkles mr-2"></i>SKILL.md 생성하기
       </button>
 
-      <!-- 결과 -->
       <div id="generateResult" class="hidden mt-6 fade-in">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-semibold text-gray-700"><i class="fas fa-file-code mr-1 text-indigo-500"></i> 생성된 SKILL.md</h3>
@@ -714,9 +975,9 @@ const mainHTML = `<!DOCTYPE html>
     // ============================================================
     const state = {
       aiApiKey: '', aiProvider: 'claude', aiVerified: false,
-      skillsmpApiKey: '', skillsmpVerified: false,
       uploadedFile: null, analysis: null,
-      searchKeywordList: [], matchedSkills: [],
+      builtInSkills: [], selectedBuiltInSkillIds: [],
+      pastSkills: [], selectedPastSkills: [],
       generatedSkillMd: ''
     };
 
@@ -734,6 +995,7 @@ const mainHTML = `<!DOCTYPE html>
 
     function setLoading(btnId, loading) {
       const btn = document.getElementById(btnId);
+      if (!btn) return;
       if (loading) {
         btn.dataset.originalHtml = btn.innerHTML;
         btn.innerHTML = '<span class="spinner"></span> 처리 중...';
@@ -788,7 +1050,9 @@ const mainHTML = `<!DOCTYPE html>
           document.getElementById('aiKeyStatus').innerHTML =
             '<span class="text-green-600 font-medium"><i class="fas fa-check-circle mr-1"></i>' + data.message + '</span>';
           toast(data.message, 'success');
-          checkAllKeys();
+          completeStep(0);
+          document.getElementById('step0Badge').classList.remove('hidden');
+          activateStep(1);
         } else {
           document.getElementById('aiKeyStatus').innerHTML =
             '<span class="text-red-500"><i class="fas fa-times-circle mr-1"></i>' + data.error + '</span>';
@@ -798,46 +1062,6 @@ const mainHTML = `<!DOCTYPE html>
         toast('검증 요청 실패: ' + e.message, 'error');
       }
       setLoading('btnVerifyAi', false);
-    }
-
-    async function verifySkillsmpKey() {
-      const key = document.getElementById('skillsmpApiKey').value.trim();
-      if (!key) { toast('SkillsMP API 키를 입력해주세요.', 'warning'); return; }
-
-      setLoading('btnVerifySkillsmp', true);
-      try {
-        // SkillsMP API로 간단한 검색 시도
-        const res = await fetch('/api/search-skills', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keywords: ['presentation'], skillsmpApiKey: key })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          state.skillsmpApiKey = key;
-          state.skillsmpVerified = true;
-          document.getElementById('skillsmpKeyStatus').innerHTML =
-            '<span class="text-green-600 font-medium"><i class="fas fa-check-circle mr-1"></i>SkillsMP API 연결 성공</span>';
-          toast('SkillsMP API 연결 성공!', 'success');
-          checkAllKeys();
-        } else {
-          document.getElementById('skillsmpKeyStatus').innerHTML =
-            '<span class="text-red-500"><i class="fas fa-times-circle mr-1"></i>' + (data.error || 'API 키 오류') + '</span>';
-          toast(data.error || 'SkillsMP API 키 오류', 'error');
-        }
-      } catch (e) {
-        toast('SkillsMP 검증 실패: ' + e.message, 'error');
-      }
-      setLoading('btnVerifySkillsmp', false);
-    }
-
-    function checkAllKeys() {
-      if (state.aiVerified && state.skillsmpVerified) {
-        completeStep(0);
-        document.getElementById('step0Badge').classList.remove('hidden');
-        activateStep(1);
-      }
     }
 
     // ============================================================
@@ -885,10 +1109,9 @@ const mainHTML = `<!DOCTYPE html>
           completeStep(1);
           activateStep(2);
 
-          // 검색 키워드 세팅
-          const kws = data.analysis.searchKeywords || data.analysis.keyTopics || [];
-          state.searchKeywordList = kws;
-          renderSearchKeywords(kws);
+          // 내장 스킬 로드 + 과거 스킬 검색
+          loadBuiltInSkills();
+          searchPastSkills(data.analysis);
 
           toast('PDF 구조 분석 완료!', 'success');
         } else {
@@ -902,111 +1125,167 @@ const mainHTML = `<!DOCTYPE html>
 
     function renderAnalysis(a) {
       const el = document.getElementById('analysisContent');
-      el.innerHTML = \`
-        <div class="grid md:grid-cols-2 gap-4">
-          <div>
-            <p class="font-semibold text-indigo-600">\${a.title || '제목 미확인'}</p>
-            <p class="text-gray-500 text-xs">주제: \${a.topic || '-'} | 슬라이드: \${a.totalSlides || '-'}장</p>
-          </div>
-          <div>
-            <p class="text-xs font-medium text-gray-600">스타일 분석</p>
-            <p class="text-xs text-gray-500">어조: \${a.styleAnalysis?.toneAndManner || '-'}</p>
-            <p class="text-xs text-gray-500">밀도: \${a.styleAnalysis?.contentDensity || '-'}</p>
-            <p class="text-xs text-gray-500">대상: \${a.styleAnalysis?.audienceLevel || '-'}</p>
-          </div>
-        </div>
-        <div class="mt-3">
-          <p class="text-xs font-medium text-gray-600 mb-1">논리 전개</p>
-          <p class="text-xs text-gray-500">\${a.flowPattern || '-'}</p>
-        </div>
-        <div class="mt-3">
-          <p class="text-xs font-medium text-gray-600 mb-1">구조 분석</p>
-          <div class="grid grid-cols-3 gap-2 text-xs">
-            <div class="bg-blue-50 rounded-lg p-2">
-              <p class="font-medium text-blue-700">도입부</p>
-              \${(a.structure?.introduction || []).map(s => '<p class="text-gray-500">- ' + s + '</p>').join('')}
-            </div>
-            <div class="bg-indigo-50 rounded-lg p-2">
-              <p class="font-medium text-indigo-700">본론</p>
-              \${(a.structure?.mainContent || []).slice(0,5).map(s => '<p class="text-gray-500">- ' + s + '</p>').join('')}
-              \${(a.structure?.mainContent || []).length > 5 ? '<p class="text-gray-400">...외 ' + ((a.structure?.mainContent || []).length - 5) + '개</p>' : ''}
-            </div>
-            <div class="bg-purple-50 rounded-lg p-2">
-              <p class="font-medium text-purple-700">결론</p>
-              \${(a.structure?.conclusion || []).map(s => '<p class="text-gray-500">- ' + s + '</p>').join('')}
-            </div>
-          </div>
-        </div>
-        <div class="mt-3">
-          <p class="text-xs font-medium text-gray-600 mb-1">핵심 키워드</p>
-          <div class="flex flex-wrap gap-1">
-            \${(a.keyTopics || []).map(k => '<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">' + k + '</span>').join('')}
-          </div>
-        </div>
-      \`;
-    }
-
-    function renderSearchKeywords(kws) {
-      const el = document.getElementById('searchKeywords');
-      el.innerHTML = kws.map(k =>
-        '<span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium"><i class="fas fa-tag mr-1"></i>' + k + '</span>'
-      ).join('');
+      el.innerHTML =
+        '<div class="grid md:grid-cols-2 gap-4">' +
+          '<div>' +
+            '<p class="font-semibold text-indigo-600">' + (a.title || '제목 미확인') + '</p>' +
+            '<p class="text-gray-500 text-xs">주제: ' + (a.topic || '-') + ' | 슬라이드: ' + (a.totalSlides || '-') + '장</p>' +
+          '</div>' +
+          '<div>' +
+            '<p class="text-xs font-medium text-gray-600">스타일 분석</p>' +
+            '<p class="text-xs text-gray-500">어조: ' + (a.styleAnalysis?.toneAndManner || '-') + '</p>' +
+            '<p class="text-xs text-gray-500">밀도: ' + (a.styleAnalysis?.contentDensity || '-') + '</p>' +
+            '<p class="text-xs text-gray-500">대상: ' + (a.styleAnalysis?.audienceLevel || '-') + '</p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mt-3">' +
+          '<p class="text-xs font-medium text-gray-600 mb-1">논리 전개</p>' +
+          '<p class="text-xs text-gray-500">' + (a.flowPattern || '-') + '</p>' +
+        '</div>' +
+        '<div class="mt-3">' +
+          '<p class="text-xs font-medium text-gray-600 mb-1">핵심 키워드</p>' +
+          '<div class="flex flex-wrap gap-1">' +
+            (a.keyTopics || []).map(function(k) { return '<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">' + k + '</span>'; }).join('') +
+          '</div>' +
+        '</div>';
     }
 
     // ============================================================
-    // STEP 2: SkillsMP 검색
+    // STEP 2: 참조 스킬 선택
     // ============================================================
-    async function searchSkills() {
-      if (!state.searchKeywordList.length) { toast('검색 키워드가 없습니다.', 'warning'); return; }
-      setLoading('btnSearch', true);
-
+    async function loadBuiltInSkills() {
       try {
-        const res = await fetch('/api/search-skills', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keywords: state.searchKeywordList, skillsmpApiKey: state.skillsmpApiKey })
-        });
+        const res = await fetch('/api/built-in-skills');
         const data = await res.json();
-
         if (data.success) {
-          const skills = data.skills?.results || data.skills?.data || data.skills || [];
-          state.matchedSkills = Array.isArray(skills) ? skills.slice(0, 5) : [];
-          renderSkillResults(state.matchedSkills);
-          document.getElementById('skillResults').classList.remove('hidden');
-          completeStep(2);
-          activateStep(3);
-          toast('유사 스킬 ' + state.matchedSkills.length + '개 발견!', 'success');
-        } else {
-          toast(data.error || '검색 실패', 'error');
+          state.builtInSkills = data.skills;
+          // 기본적으로 전부 선택
+          state.selectedBuiltInSkillIds = data.skills.map(function(s) { return s.id; });
+          renderBuiltInSkills(data.skills);
         }
       } catch (e) {
-        toast('검색 요청 실패: ' + e.message, 'error');
+        console.error('내장 스킬 로드 실패:', e);
       }
-      setLoading('btnSearch', false);
     }
 
-    function renderSkillResults(skills) {
-      const el = document.getElementById('skillResults');
-      if (!skills.length) {
-        el.innerHTML = '<p class="text-gray-500 text-sm">검색 결과가 없습니다. 키워드를 수정해보세요.</p>';
+    function renderBuiltInSkills(skills) {
+      const el = document.getElementById('builtInSkillList');
+      el.innerHTML = skills.map(function(s) {
+        var isSelected = state.selectedBuiltInSkillIds.includes(s.id);
+        return '<div class="skill-card p-4 rounded-xl border-2 cursor-pointer ' +
+          (isSelected ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white') +
+          '" onclick="toggleBuiltInSkill(\\'' + s.id + '\\')" data-skill-id="' + s.id + '">' +
+          '<div class="flex items-start gap-2">' +
+            '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' class="mt-1 accent-indigo-500" onclick="event.stopPropagation();" onchange="toggleBuiltInSkill(\\''+s.id+'\\');">' +
+            '<div class="flex-1">' +
+              '<p class="font-semibold text-sm text-gray-800">' + s.name + '</p>' +
+              '<p class="text-xs text-gray-400 mt-0.5">' + s.source + '</p>' +
+              '<p class="text-xs text-gray-500 mt-1 line-clamp-2">' + s.description + '</p>' +
+              '<div class="flex flex-wrap gap-1 mt-2">' +
+                s.tags.map(function(t) { return '<span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-xs">' + t + '</span>'; }).join('') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function toggleBuiltInSkill(id) {
+      var idx = state.selectedBuiltInSkillIds.indexOf(id);
+      if (idx >= 0) {
+        state.selectedBuiltInSkillIds.splice(idx, 1);
+      } else {
+        state.selectedBuiltInSkillIds.push(id);
+      }
+      renderBuiltInSkills(state.builtInSkills);
+    }
+
+    async function searchPastSkills(analysis) {
+      document.getElementById('pastSkillsLoading').classList.remove('hidden');
+      document.getElementById('pastSkillList').classList.add('hidden');
+      document.getElementById('pastSkillEmpty').classList.add('hidden');
+
+      var keywords = (analysis.searchKeywords || analysis.keyTopics || []).slice(0, 5);
+      if (!keywords.length) {
+        document.getElementById('pastSkillsLoading').classList.add('hidden');
+        document.getElementById('pastSkillEmpty').classList.remove('hidden');
         return;
       }
-      el.innerHTML = '<h3 class="font-semibold text-gray-700 text-sm mb-2">매칭된 스킬 Top ' + skills.length + '</h3>' +
-        skills.map((s, i) => \`
-          <div class="bg-white rounded-xl p-4 border hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <p class="font-semibold text-gray-800">\${i+1}. \${s.name || s.title || s.slug || 'N/A'}</p>
-                <p class="text-gray-500 text-xs mt-1 line-clamp-2">\${s.description || ''}</p>
-              </div>
-              <div class="flex items-center gap-3 text-xs text-gray-400 ml-4">
-                \${s.stars ? '<span><i class="fas fa-star text-yellow-400"></i> ' + s.stars + '</span>' : ''}
-                \${s.author ? '<span>by ' + s.author + '</span>' : ''}
-              </div>
-            </div>
-            \${s.url || s.homepage ? '<a href="' + (s.url || s.homepage) + '" target="_blank" class="text-indigo-500 text-xs hover:underline mt-1 inline-block"><i class="fas fa-external-link-alt mr-1"></i>상세보기</a>' : ''}
-          </div>
-        \`).join('');
+
+      try {
+        var res = await fetch('/api/skills/search-similar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keywords: keywords })
+        });
+        var data = await res.json();
+
+        document.getElementById('pastSkillsLoading').classList.add('hidden');
+
+        if (data.success && data.skills && data.skills.length > 0) {
+          state.pastSkills = data.skills;
+          state.selectedPastSkills = data.skills.slice(0, 3); // 상위 3개 기본 선택
+          renderPastSkills(data.skills);
+          document.getElementById('pastSkillList').classList.remove('hidden');
+        } else {
+          document.getElementById('pastSkillEmpty').classList.remove('hidden');
+        }
+      } catch (e) {
+        document.getElementById('pastSkillsLoading').classList.add('hidden');
+        document.getElementById('pastSkillEmpty').classList.remove('hidden');
+      }
+    }
+
+    function renderPastSkills(skills) {
+      var el = document.getElementById('pastSkillList');
+      el.innerHTML = skills.map(function(s) {
+        var isSelected = state.selectedPastSkills.some(function(ps) { return ps.id === s.id; });
+        return '<div class="skill-card flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer ' +
+          (isSelected ? 'border-purple-400 bg-purple-50' : 'border-gray-200 bg-white') +
+          '" onclick="togglePastSkill(' + s.id + ')" data-past-id="' + s.id + '">' +
+          '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' class="mt-1 accent-purple-500" onclick="event.stopPropagation();" onchange="togglePastSkill(' + s.id + ');">' +
+          '<div class="flex-1">' +
+            '<p class="font-semibold text-sm text-gray-800">' + s.title + '</p>' +
+            '<p class="text-xs text-gray-500 mt-0.5">' +
+              '<span class="mr-2"><i class="fas fa-folder-open mr-1"></i>' + (s.topic || '-') + '</span>' +
+              '<span><i class="fas fa-clock mr-1"></i>' + new Date(s.created_at).toLocaleDateString('ko-KR') + '</span>' +
+            '</p>' +
+            '<p class="text-xs text-gray-400 mt-1 line-clamp-2">' + (s.preview || '') + '</p>' +
+            '<div class="flex flex-wrap gap-1 mt-1">' +
+              (s.tags || '').split(',').filter(Boolean).map(function(t) { return '<span class="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded text-xs">' + t.trim() + '</span>'; }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function togglePastSkill(id) {
+      var idx = state.selectedPastSkills.findIndex(function(s) { return s.id === id; });
+      if (idx >= 0) {
+        state.selectedPastSkills.splice(idx, 1);
+      } else {
+        var skill = state.pastSkills.find(function(s) { return s.id === id; });
+        if (skill) state.selectedPastSkills.push(skill);
+      }
+      renderPastSkills(state.pastSkills);
+    }
+
+    function confirmSkillSelection() {
+      var builtInCount = state.selectedBuiltInSkillIds.length;
+      var pastCount = state.selectedPastSkills.length;
+
+      completeStep(2);
+      activateStep(3);
+
+      // 선택 요약 표시
+      var summary = '내장 스킬 ' + builtInCount + '개';
+      if (pastCount > 0) summary += ' + 과거 스킬 ' + pastCount + '개';
+      summary += ' 참조하여 생성합니다.';
+
+      document.getElementById('selectedRefSummary').classList.remove('hidden');
+      document.getElementById('refSummaryText').textContent = summary;
+
+      toast('참조 스킬 선택 완료!', 'success');
     }
 
     // ============================================================
@@ -1014,21 +1293,22 @@ const mainHTML = `<!DOCTYPE html>
     // ============================================================
     async function generateSkill() {
       setLoading('btnGenerate', true);
-      const draftText = document.getElementById('draftText').value.trim();
+      var draftText = document.getElementById('draftText').value.trim();
 
       try {
-        const res = await fetch('/api/generate-skill', {
+        var res = await fetch('/api/generate-skill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             templateAnalysis: state.analysis,
-            matchedSkills: state.matchedSkills,
-            draftText,
+            selectedBuiltInSkills: state.selectedBuiltInSkillIds,
+            pastSkills: state.selectedPastSkills,
+            draftText: draftText,
             apiKey: state.aiApiKey,
             provider: state.aiProvider
           })
         });
-        const data = await res.json();
+        var data = await res.json();
 
         if (data.success && data.skillMd) {
           state.generatedSkillMd = data.skillMd;
@@ -1065,8 +1345,8 @@ const mainHTML = `<!DOCTYPE html>
     }
 
     function downloadSkillMd() {
-      const blob = new Blob([state.generatedSkillMd], { type: 'text/markdown' });
-      const a = document.createElement('a');
+      var blob = new Blob([state.generatedSkillMd], { type: 'text/markdown' });
+      var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'SKILL.md';
       a.click();
@@ -1075,7 +1355,7 @@ const mainHTML = `<!DOCTYPE html>
 
     async function saveSkillToDb() {
       try {
-        const res = await fetch('/api/skills/save', {
+        var res = await fetch('/api/skills/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1084,11 +1364,10 @@ const mainHTML = `<!DOCTYPE html>
             templateName: state.uploadedFile?.name || '',
             skillContent: state.generatedSkillMd,
             templateAnalysis: state.analysis,
-            matchedSkills: state.matchedSkills,
             tags: (state.analysis?.keyTopics || []).join(',')
           })
         });
-        const data = await res.json();
+        var data = await res.json();
         if (data.success) {
           toast('DB에 저장되었습니다! (ID: ' + data.id + ')', 'success');
         } else {
@@ -1108,7 +1387,6 @@ const adminHTML = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>관리자 - AI 강의안 스킬 생성기</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1125,6 +1403,9 @@ const adminHTML = `<!DOCTYPE html>
     .skill-md-preview code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
     .skill-md-preview pre { background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 8px; overflow-x: auto; }
     .skill-md-preview pre code { background: transparent; color: inherit; }
+    .skill-md-preview table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+    .skill-md-preview th, .skill-md-preview td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+    .skill-md-preview th { background: #f9fafb; font-weight: 600; }
     .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 10px; color: white; font-weight: 500; animation: slideIn 0.3s ease; }
     @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
   </style>
@@ -1148,7 +1429,6 @@ const adminHTML = `<!DOCTYPE html>
   </header>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
-    <!-- 검색 -->
     <div class="glass rounded-2xl p-5 shadow-md mb-6">
       <div class="flex gap-3">
         <input id="searchInput" type="text" placeholder="제목, 주제, 태그로 검색..."
@@ -1160,13 +1440,9 @@ const adminHTML = `<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- 결과 리스트 -->
     <div id="skillList" class="space-y-3"></div>
-
-    <!-- 페이지네이션 -->
     <div id="pagination" class="flex justify-center gap-2 mt-6"></div>
 
-    <!-- 스킬 상세 모달 -->
     <div id="modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between p-5 border-b">
@@ -1186,24 +1462,26 @@ const adminHTML = `<!DOCTYPE html>
   </main>
 
   <script>
-    let currentPage = 1;
-    let currentSkillMd = '';
+    var currentPage = 1;
+    var currentSkillMd = '';
 
-    function toast(msg, type='info') {
-      const colors = { info:'bg-blue-500', success:'bg-green-500', error:'bg-red-500' };
-      const el = document.createElement('div');
+    function toast(msg, type) {
+      type = type || 'info';
+      var colors = { info:'bg-blue-500', success:'bg-green-500', error:'bg-red-500' };
+      var el = document.createElement('div');
       el.className = 'toast ' + (colors[type] || colors.info);
       el.textContent = msg;
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 3000);
+      setTimeout(function() { el.remove(); }, 3000);
     }
 
-    async function loadSkills(page = 1) {
+    async function loadSkills(page) {
+      page = page || 1;
       currentPage = page;
-      const q = document.getElementById('searchInput').value.trim();
+      var q = document.getElementById('searchInput').value.trim();
       try {
-        const res = await fetch('/api/skills?q=' + encodeURIComponent(q) + '&page=' + page);
-        const data = await res.json();
+        var res = await fetch('/api/skills?q=' + encodeURIComponent(q) + '&page=' + page);
+        var data = await res.json();
         renderList(data.skills || []);
         renderPagination(data.page, data.totalPages, data.total);
       } catch(e) {
@@ -1212,40 +1490,40 @@ const adminHTML = `<!DOCTYPE html>
     }
 
     function renderList(skills) {
-      const el = document.getElementById('skillList');
+      var el = document.getElementById('skillList');
       if (!skills.length) {
         el.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>저장된 스킬이 없습니다.</p></div>';
         return;
       }
-      el.innerHTML = skills.map(s => \`
-        <div class="glass rounded-xl p-4 shadow-sm border hover:shadow-md transition cursor-pointer" onclick="viewSkill(\${s.id})">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <p class="font-semibold text-gray-800">\${s.title}</p>
-              <p class="text-gray-500 text-xs mt-1">
-                <span class="mr-3"><i class="fas fa-folder-open mr-1"></i>\${s.topic || '-'}</span>
-                <span class="mr-3"><i class="fas fa-file mr-1"></i>\${s.template_name || '-'}</span>
-                <span><i class="fas fa-clock mr-1"></i>\${new Date(s.created_at).toLocaleDateString('ko-KR')}</span>
-              </p>
-              <div class="flex flex-wrap gap-1 mt-2">
-                \${(s.tags || '').split(',').filter(Boolean).map(t => '<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs">' + t.trim() + '</span>').join('')}
-              </div>
-            </div>
-            <div class="flex gap-2 ml-4">
-              <button onclick="event.stopPropagation(); deleteSkill(\${s.id})" class="text-red-400 hover:text-red-600 px-2 py-1 rounded text-sm">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      \`).join('');
+      el.innerHTML = skills.map(function(s) {
+        return '<div class="glass rounded-xl p-4 shadow-sm border hover:shadow-md transition cursor-pointer" onclick="viewSkill(' + s.id + ')">' +
+          '<div class="flex items-center justify-between">' +
+            '<div class="flex-1">' +
+              '<p class="font-semibold text-gray-800">' + s.title + '</p>' +
+              '<p class="text-gray-500 text-xs mt-1">' +
+                '<span class="mr-3"><i class="fas fa-folder-open mr-1"></i>' + (s.topic || '-') + '</span>' +
+                '<span class="mr-3"><i class="fas fa-file mr-1"></i>' + (s.template_name || '-') + '</span>' +
+                '<span><i class="fas fa-clock mr-1"></i>' + new Date(s.created_at).toLocaleDateString('ko-KR') + '</span>' +
+              '</p>' +
+              '<div class="flex flex-wrap gap-1 mt-2">' +
+                (s.tags || '').split(',').filter(Boolean).map(function(t) { return '<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs">' + t.trim() + '</span>'; }).join('') +
+              '</div>' +
+            '</div>' +
+            '<div class="flex gap-2 ml-4">' +
+              '<button onclick="event.stopPropagation(); deleteSkill(' + s.id + ')" class="text-red-400 hover:text-red-600 px-2 py-1 rounded text-sm">' +
+                '<i class="fas fa-trash"></i>' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
     function renderPagination(page, totalPages, total) {
-      const el = document.getElementById('pagination');
+      var el = document.getElementById('pagination');
       if (totalPages <= 1) { el.innerHTML = '<p class="text-gray-400 text-sm">총 ' + total + '건</p>'; return; }
-      let html = '';
-      for (let i = 1; i <= totalPages; i++) {
+      var html = '';
+      for (var i = 1; i <= totalPages; i++) {
         html += '<button onclick="loadSkills(' + i + ')" class="px-3 py-1 rounded-lg text-sm ' +
           (i === page ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100') + '">' + i + '</button>';
       }
@@ -1255,8 +1533,8 @@ const adminHTML = `<!DOCTYPE html>
 
     async function viewSkill(id) {
       try {
-        const res = await fetch('/api/skills/' + id);
-        const data = await res.json();
+        var res = await fetch('/api/skills/' + id);
+        var data = await res.json();
         if (data.skill) {
           currentSkillMd = data.skill.skill_content;
           document.getElementById('modalTitle').textContent = data.skill.title;
@@ -1273,8 +1551,8 @@ const adminHTML = `<!DOCTYPE html>
     }
 
     function downloadModalSkill() {
-      const blob = new Blob([currentSkillMd], { type: 'text/markdown' });
-      const a = document.createElement('a');
+      var blob = new Blob([currentSkillMd], { type: 'text/markdown' });
+      var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'SKILL.md';
       a.click();
@@ -1291,10 +1569,7 @@ const adminHTML = `<!DOCTYPE html>
       }
     }
 
-    // ESC로 모달 닫기
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-    // 초기 로드
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
     loadSkills();
   </script>
 </body>
