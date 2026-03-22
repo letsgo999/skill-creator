@@ -13,16 +13,36 @@ app.use('/api/*', cors())
 // API 라우트들
 // ============================================================
 
-// 1) OpenAI API 키 검증
+// 1) API 키 검증 (Claude / OpenAI / Gemini)
 app.post('/api/verify-key', async (c) => {
-  const { apiKey, provider } = await c.req.json<{ apiKey: string; provider: 'openai' | 'gemini' }>()
+  const { apiKey, provider } = await c.req.json<{ apiKey: string; provider: 'claude' | 'openai' | 'gemini' }>()
 
   if (!apiKey || !provider) {
     return c.json({ valid: false, error: 'API 키와 프로바이더를 입력해주세요.' }, 400)
   }
 
   try {
-    if (provider === 'openai') {
+    if (provider === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: 'ping' }]
+        })
+      })
+      if (res.ok || res.status === 200) {
+        return c.json({ valid: true, provider: 'claude', message: 'Claude API 키가 정상입니다.' })
+      } else {
+        const err = await res.json().catch(() => ({})) as any
+        return c.json({ valid: false, error: err?.error?.message || `Claude 인증 실패 (${res.status})` })
+      }
+    } else if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/models', {
         headers: { 'Authorization': `Bearer ${apiKey}` }
       })
@@ -94,7 +114,42 @@ app.post('/api/analyze-pdf', async (c) => {
   try {
     let result: string
 
-    if (provider === 'openai') {
+    if (provider === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: base64
+                }
+              },
+              { type: 'text', text: analysisPrompt }
+            ]
+          }]
+        })
+      })
+
+      if (!res.ok) {
+        const errBody = await res.text()
+        return c.json({ error: `Claude API 오류 (${res.status}): ${errBody}` }, 500)
+      }
+
+      const data = await res.json() as any
+      result = data.content?.[0]?.text || ''
+    } else if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -280,7 +335,29 @@ ${draftSection}
   try {
     let result: string
 
-    if (provider === 'openai') {
+    if (provider === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: generatePrompt }]
+        })
+      })
+
+      if (!res.ok) {
+        const errBody = await res.text()
+        return c.json({ error: `Claude API 오류: ${errBody}` }, 500)
+      }
+
+      const data = await res.json() as any
+      result = data.content?.[0]?.text || ''
+    } else if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -506,6 +583,7 @@ const mainHTML = `<!DOCTYPE html>
           <h3 class="font-semibold text-gray-700"><i class="fas fa-brain mr-1 text-indigo-500"></i> AI API 키</h3>
           <div class="flex gap-2">
             <select id="aiProvider" class="border rounded-lg px-3 py-2 text-sm bg-white">
+              <option value="claude">Claude (Anthropic)</option>
               <option value="openai">OpenAI</option>
               <option value="gemini">Gemini</option>
             </select>
@@ -516,7 +594,7 @@ const mainHTML = `<!DOCTYPE html>
               검증
             </button>
           </div>
-          <p id="aiKeyStatus" class="text-sm text-gray-500">OpenAI 키를 우선 입력하세요. 실패 시 Gemini로 전환 가능합니다.</p>
+          <p id="aiKeyStatus" class="text-sm text-gray-500">AI 프로바이더를 선택하고 API 키를 입력하세요.</p>
         </div>
 
         <!-- SkillsMP API -->
@@ -635,7 +713,7 @@ const mainHTML = `<!DOCTYPE html>
     // 상태 관리
     // ============================================================
     const state = {
-      aiApiKey: '', aiProvider: 'openai', aiVerified: false,
+      aiApiKey: '', aiProvider: 'claude', aiVerified: false,
       skillsmpApiKey: '', skillsmpVerified: false,
       uploadedFile: null, analysis: null,
       searchKeywordList: [], matchedSkills: [],
