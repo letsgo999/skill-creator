@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "skill-generator-db",
-      "database_id": "local-dev-db"
+      "database_id": "7721feff-7207-4a43-a21d-cca94c51cc3c"
     }
   ]
 }
