@@ -1,33 +1,34 @@
-# prod
+# Dependencies
+node_modules/
+
+# Build output
 dist/
 
-# dev
-.yarn/
-!.yarn/releases
-.vscode/*
-!.vscode/launch.json
-!.vscode/*.code-snippets
-.idea/workspace.xml
-.idea/usage.statistics.xml
-.idea/shelf
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# deps
-node_modules/
-.wrangler
-
-# env
+# dotenv environment variables file
 .env
-.env.production
 .dev.vars
 
-# logs
+# PM2
+.pm2/
+pids/
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# misc
+# Wrangler local state
+.wrangler/
+
+# Backup files
+*.backup
+*.bak
+*.tar.gz
+*.zip
+
+# OS files
 .DS_Store
+Thumbs.db
