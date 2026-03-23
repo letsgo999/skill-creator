@@ -566,7 +566,7 @@ app.post('/api/generate-skill', async (c) => {
 
   const generatePrompt = `당신은 AI 에이전트용 SKILL.md 문서를 작성하는 전문가입니다.
 
-아래 정보를 종합하여, Claude Code / ChatGPT / Codex가 즉시 사용할 수 있는 고품질 SKILL.md 파일을 생성해주세요.
+아래 정보를 종합하여, Claude Code가 즉시 사용할 수 있는 고품질 SKILL.md 파일을 생성해주세요.
 
 ## 분석된 템플릿 구조:
 ${JSON.stringify(templateAnalysis, null, 2)}
@@ -577,39 +577,46 @@ ${pastRef ? `## 참조할 과거 생성 스킬:\n${pastRef}` : ''}
 
 ${draftSection}
 
-## SKILL.md 작성 규칙 (반드시 모두 준수):
+## [절대규칙] YAML Frontmatter 형식 — 아래 형식을 한 글자도 빠짐없이 지켜라
 
-### [최우선 규칙] YAML Frontmatter 필수!
-출력의 맨 첫 줄은 반드시 --- (대시 3개)로 시작해야 합니다.
-아래 정확한 포맷으로 YAML frontmatter를 반드시 포함하세요:
+출력의 첫 번째 줄은 반드시 --- (대시 세 개)이다.
+그 다음 줄에 name: 값, 그 다음 줄에 description: "값" 순서로 적는다.
+마지막에 다시 --- 을 적어 frontmatter를 닫는다.
 
-\`\`\`
+name 규칙 (위반 시 Claude가 거부함):
+- 영문 소문자, 숫자, 하이픈(-) 만 허용. 한글/공백/언더스코어/대문자 절대 금지
+- 최대 64자 이내
+- 예시: ai-lecture-slide-generator, gov-training-presenter
+
+description 규칙:
+- 반드시 쌍따옴표로 감싼 한 줄 문자열. 줄바꿈 금지
+- 1024자 이내
+- XML 태그(<, >) 금지
+- 스킬이 무엇을 하는지 + 어떤 상황에서 활성화되는지를 설명
+
+실제 출력 예시 (첫 5줄):
 ---
-name: 스킬-이름-영문-kebab-case
-description: "이 스킬의 트리거 조건과 용도를 구체적으로 설명. 사용자가 '강의안', '슬라이드' 등을 언급하거나 .pptx/.pdf 파일을 제공할 때 활성화."
-version: 1.0.0
-tags: [태그1, 태그2, 태그3]
+name: ai-lecture-slide-generator
+description: "PDF/PPTX 강의 템플릿을 분석하여 동일한 구조의 새 강의안 슬라이드를 생성하는 스킬. 사용자가 강의안, 슬라이드, 프레젠테이션 생성을 요청하거나 PDF/PPTX 파일을 제공할 때 활성화."
 ---
-\`\`\`
 
-이 YAML frontmatter가 없으면 Claude에 스킬로 등록이 불가능합니다. 절대 생략하지 마세요.
+version, tags 등 다른 필드는 넣지 마라. name과 description만 넣어라.
 
-### 나머지 작성 규칙:
-1. YAML frontmatter 바로 다음 줄부터 마크다운 본문 시작
-2. 한국어 강의안 슬라이드 제작에 최적화할 것
-3. 원본 템플릿의 흐름 패턴(도입-전개-결론)과 톤앤매너를 반영할 것
-4. 슬라이드별 콘텐츠 밀도와 시각 자료 배치 가이드를 포함할 것
-5. AI가 이 SKILL.md만 읽고도 동일한 스타일의 강의안을 만들 수 있게 구체적으로 작성할 것
-6. When to Use / Core Rules / Phase별 단계 / Output 형식을 명확히 할 것
-7. 트리거 조건을 구체적으로 작성할 것 (어떤 사용자 발화/상황에서 활성화되는지)
-8. 내장 참조 스킬의 구조와 패턴을 참고하되 템플릿 분석 결과를 우선 반영할 것
-9. 과거 생성 스킬이 있다면 그 스타일과 패턴을 유지하면서 발전시킬 것
-10. name 필드는 반드시 영문 kebab-case (예: ai-lecture-slide-generator)
+## 본문 작성 규칙:
+1. frontmatter 닫는 --- 바로 다음 줄부터 마크다운 본문 시작 (빈 줄 하나 후 # 제목)
+2. 한국어 강의안 슬라이드 제작에 최적화
+3. 원본 템플릿의 흐름 패턴(도입-전개-결론)과 톤앤매너 반영
+4. 슬라이드별 콘텐츠 밀도와 시각 자료 배치 가이드 포함
+5. AI가 이 SKILL.md만 읽고도 동일한 스타일의 강의안을 만들 수 있게 구체적 작성
+6. When to Use / Core Rules / Phase별 단계 / Output 형식 명확히 구분
+7. 트리거 조건을 구체적으로 (어떤 사용자 발화/상황에서 활성화되는지)
+8. 내장 참조 스킬의 구조를 참고하되 템플릿 분석 결과 우선 반영
+9. 과거 생성 스킬이 있으면 그 스타일 유지하면서 발전
 
-## 출력 형식 (엄격히 준수):
-- 출력의 첫 줄은 반드시 --- (YAML frontmatter 시작)
-- 코드블록(\`\`\`)으로 감싸지 마세요. 순수 마크다운만 출력하세요.
-- SKILL.md 문서 전체를 출력하세요.`
+## 출력 형식 (위반 시 파일 사용 불가):
+- 출력의 첫 줄은 반드시 --- (대시 3개. 앞에 공백/빈줄/코드블록 절대 금지)
+- 전체를 \`\`\`markdown 코드블록으로 감싸지 마라. 순수 텍스트 그대로 출력
+- SKILL.md 전체를 출력하라`
 
   try {
     let result: string
@@ -674,33 +681,88 @@ tags: [태그1, 태그2, 태그3]
       result = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
-    // YAML frontmatter 보정 후처리
+    // ============================================================
+    // YAML frontmatter 강제 보정 후처리 (Claude 업로드 규격 준수)
+    // ============================================================
     let finalResult = result.trim()
 
-    // 코드블록 감싸기 제거
-    finalResult = finalResult.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/,'').trim()
+    // 1) 코드블록 감싸기 제거 (```markdown ... ``` 패턴)
+    finalResult = finalResult.replace(/^```(?:markdown|md|yaml)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim()
 
-    // YAML frontmatter가 없으면 자동 추가
-    if (!finalResult.startsWith('---')) {
-      // 제목에서 name 추출 시도
-      const titleMatch = finalResult.match(/^#\s+(.+)/m)
-      const skillName = (titleMatch ? titleMatch[1] : (templateAnalysis?.title || 'lecture-skill'))
+    // 2) name 규격 교정 함수: 영문소문자+숫자+하이픈만 허용, 최대 64자
+    function sanitizeName(raw: string): string {
+      // 한글은 제거하고 영문만 남김
+      let cleaned = raw
         .toLowerCase()
-        .replace(/[^a-z0-9가-힣\s-]/g, '')
-        .replace(/[가-힣]+/g, (m: string) => m) // 한글은 일단 유지
+        .replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, '') // 한글 제거
+        .replace(/[^a-z0-9\s-]/g, '')       // 영문소문자, 숫자, 하이픈, 공백만 남김
         .trim()
-        .replace(/\s+/g, '-')
-        .substring(0, 50)
+        .replace(/\s+/g, '-')               // 공백 → 하이픈
+        .replace(/-+/g, '-')                // 연속 하이픈 정리
+        .replace(/^-|-$/g, '')              // 앞뒤 하이픈 제거
+        .substring(0, 64)
+      return cleaned || 'ai-lecture-slide-generator'
+    }
 
-      // 영문 name 생성 (한글이면 기본값 사용)
-      const englishName = /^[a-z]/.test(skillName) ? skillName : 'lecture-slide-skill'
+    // 3) description 규격 교정: 한 줄, 1024자, XML 태그 제거
+    function sanitizeDescription(raw: string): string {
+      return raw
+        .replace(/\n/g, ' ')               // 줄바꿈 → 공백
+        .replace(/<[^>]*>/g, '')            // XML 태그 제거
+        .replace(/"/g, "'")               // 쌍따옴표 → 작은따옴표
+        .trim()
+        .substring(0, 1024)
+    }
+
+    // 4) frontmatter 파싱 및 검증
+    const fmRegex = /^---\s*\n([\s\S]*?)\n---/
+    const fmMatch = finalResult.match(fmRegex)
+
+    if (fmMatch) {
+      // frontmatter가 있으면 name/description 검증 및 교정
+      const fmBody = fmMatch[1]
+      const nameMatch = fmBody.match(/^name:\s*(.+)$/m)
+      const descMatch = fmBody.match(/^description:\s*["']?(.+?)["']?\s*$/m)
+
+      let name = nameMatch ? nameMatch[1].trim().replace(/["']/g, '') : ''
+      let desc = descMatch ? descMatch[1].trim() : ''
+
+      // name 규격 위반 체크 (한글, 대문자, 언더스코어, 공백, 64자 초과)
+      const isNameValid = /^[a-z0-9][a-z0-9-]*$/.test(name) && name.length <= 64
+
+      if (!isNameValid || !name) {
+        // name이 규격에 안 맞으면 교정
+        const titleMatch2 = finalResult.match(/^#\s+(.+)/m)
+        const rawName = name || (titleMatch2 ? titleMatch2[1] : '') || templateAnalysis?.title || 'ai-lecture-skill'
+        name = sanitizeName(rawName)
+      }
+
+      if (!desc) {
+        desc = (templateAnalysis?.topic || '강의안') + ' 관련 강의안 슬라이드를 생성하는 스킬. 사용자가 강의안, 슬라이드, 프레젠테이션 생성을 요청하거나 PDF/PPTX 템플릿을 제공할 때 활성화.'
+      }
+      desc = sanitizeDescription(desc)
+
+      // 기존 frontmatter를 교정된 것으로 교체 (name + description만)
+      const newFm = `---\nname: ${name}\ndescription: "${desc}"\n---`
+      finalResult = finalResult.replace(fmRegex, newFm)
+
+    } else {
+      // frontmatter가 아예 없으면 자동 생성
+      const titleMatch3 = finalResult.match(/^#\s+(.+)/m)
+      const rawName = (titleMatch3 ? titleMatch3[1] : '') || templateAnalysis?.title || 'ai-lecture-skill'
+      const name = sanitizeName(rawName)
 
       const topicDesc = templateAnalysis?.topic || '강의안 슬라이드 생성'
-      const tags = (templateAnalysis?.keyTopics || ['강의안', '슬라이드', '교육']).slice(0, 5)
+      const desc = sanitizeDescription(
+        topicDesc + ' 관련 강의안 슬라이드를 생성하는 스킬. 사용자가 강의안, 슬라이드, 프레젠테이션 생성을 요청하거나 PDF/PPTX 템플릿을 제공할 때 활성화.'
+      )
 
-      const frontmatter = `---\nname: ${englishName}\ndescription: "${topicDesc} 관련 강의안 슬라이드를 생성하는 스킬. 사용자가 강의안, 슬라이드, 프레젠테이션 생성을 요청하거나 PDF/PPTX 템플릿을 제공할 때 활성화."\nversion: 1.0.0\ntags: [${tags.map((t: string) => t).join(', ')}]\n---\n\n`
+      finalResult = `---\nname: ${name}\ndescription: "${desc}"\n---\n\n${finalResult}`
+    }
 
-      finalResult = frontmatter + finalResult
+    // 5) 최종 검증: 첫 줄이 --- 인지 확인
+    if (!finalResult.startsWith('---')) {
+      finalResult = `---\nname: ai-lecture-slide-generator\ndescription: "강의안 슬라이드를 생성하는 스킬. 사용자가 강의안이나 슬라이드 생성을 요청할 때 활성화."\n---\n\n${finalResult}`
     }
 
     return c.json({ success: true, skillMd: finalResult })
