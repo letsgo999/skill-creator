@@ -577,8 +577,25 @@ ${pastRef ? `## 참조할 과거 생성 스킬:\n${pastRef}` : ''}
 
 ${draftSection}
 
-## SKILL.md 작성 규칙:
-1. 표준 SKILL.md 포맷을 따를 것 (YAML frontmatter: name, version, description, tags)
+## SKILL.md 작성 규칙 (반드시 모두 준수):
+
+### [최우선 규칙] YAML Frontmatter 필수!
+출력의 맨 첫 줄은 반드시 --- (대시 3개)로 시작해야 합니다.
+아래 정확한 포맷으로 YAML frontmatter를 반드시 포함하세요:
+
+\`\`\`
+---
+name: 스킬-이름-영문-kebab-case
+description: "이 스킬의 트리거 조건과 용도를 구체적으로 설명. 사용자가 '강의안', '슬라이드' 등을 언급하거나 .pptx/.pdf 파일을 제공할 때 활성화."
+version: 1.0.0
+tags: [태그1, 태그2, 태그3]
+---
+\`\`\`
+
+이 YAML frontmatter가 없으면 Claude에 스킬로 등록이 불가능합니다. 절대 생략하지 마세요.
+
+### 나머지 작성 규칙:
+1. YAML frontmatter 바로 다음 줄부터 마크다운 본문 시작
 2. 한국어 강의안 슬라이드 제작에 최적화할 것
 3. 원본 템플릿의 흐름 패턴(도입-전개-결론)과 톤앤매너를 반영할 것
 4. 슬라이드별 콘텐츠 밀도와 시각 자료 배치 가이드를 포함할 것
@@ -587,8 +604,12 @@ ${draftSection}
 7. 트리거 조건을 구체적으로 작성할 것 (어떤 사용자 발화/상황에서 활성화되는지)
 8. 내장 참조 스킬의 구조와 패턴을 참고하되 템플릿 분석 결과를 우선 반영할 것
 9. 과거 생성 스킬이 있다면 그 스타일과 패턴을 유지하면서 발전시킬 것
+10. name 필드는 반드시 영문 kebab-case (예: ai-lecture-slide-generator)
 
-출력은 마크다운 SKILL.md 문서 전체를 출력하세요.`
+## 출력 형식 (엄격히 준수):
+- 출력의 첫 줄은 반드시 --- (YAML frontmatter 시작)
+- 코드블록(\`\`\`)으로 감싸지 마세요. 순수 마크다운만 출력하세요.
+- SKILL.md 문서 전체를 출력하세요.`
 
   try {
     let result: string
@@ -653,7 +674,36 @@ ${draftSection}
       result = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
-    return c.json({ success: true, skillMd: result })
+    // YAML frontmatter 보정 후처리
+    let finalResult = result.trim()
+
+    // 코드블록 감싸기 제거
+    finalResult = finalResult.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/,'').trim()
+
+    // YAML frontmatter가 없으면 자동 추가
+    if (!finalResult.startsWith('---')) {
+      // 제목에서 name 추출 시도
+      const titleMatch = finalResult.match(/^#\s+(.+)/m)
+      const skillName = (titleMatch ? titleMatch[1] : (templateAnalysis?.title || 'lecture-skill'))
+        .toLowerCase()
+        .replace(/[^a-z0-9가-힣\s-]/g, '')
+        .replace(/[가-힣]+/g, (m: string) => m) // 한글은 일단 유지
+        .trim()
+        .replace(/\s+/g, '-')
+        .substring(0, 50)
+
+      // 영문 name 생성 (한글이면 기본값 사용)
+      const englishName = /^[a-z]/.test(skillName) ? skillName : 'lecture-slide-skill'
+
+      const topicDesc = templateAnalysis?.topic || '강의안 슬라이드 생성'
+      const tags = (templateAnalysis?.keyTopics || ['강의안', '슬라이드', '교육']).slice(0, 5)
+
+      const frontmatter = `---\nname: ${englishName}\ndescription: "${topicDesc} 관련 강의안 슬라이드를 생성하는 스킬. 사용자가 강의안, 슬라이드, 프레젠테이션 생성을 요청하거나 PDF/PPTX 템플릿을 제공할 때 활성화."\nversion: 1.0.0\ntags: [${tags.map((t: string) => t).join(', ')}]\n---\n\n`
+
+      finalResult = frontmatter + finalResult
+    }
+
+    return c.json({ success: true, skillMd: finalResult })
   } catch (e: any) {
     return c.json({ error: `SKILL.md 생성 오류: ${e.message}` }, 500)
   }
