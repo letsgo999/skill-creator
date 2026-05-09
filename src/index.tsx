@@ -978,7 +978,7 @@ const mainHTML = `<!DOCTYPE html>
         <input type="file" id="pdfInput" accept=".pdf,.pptx" class="hidden">
         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
         <p class="text-gray-600 font-medium">PDF 또는 PPTX 파일을 드래그하거나 클릭하여 업로드</p>
-        <p class="text-gray-400 text-sm mt-1">최대 10MB</p>
+        <p class="text-gray-400 text-sm mt-1">최대 20MB</p>
       </div>
       <div id="fileInfo" class="hidden mt-3 flex items-center gap-2 text-sm text-gray-600">
         <i class="fas fa-file-pdf text-red-500"></i>
@@ -1193,7 +1193,7 @@ const mainHTML = `<!DOCTYPE html>
     pdfInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
     function handleFile(file) {
-      if (file.size > 10 * 1024 * 1024) { toast('10MB 이하 파일만 업로드 가능합니다.', 'warning'); return; }
+      if (file.size > 20 * 1024 * 1024) { toast('20MB 이하 파일만 업로드 가능합니다.', 'warning'); return; }
       state.uploadedFile = file;
       document.getElementById('fileInfo').classList.remove('hidden');
       document.getElementById('fileName').textContent = file.name;
