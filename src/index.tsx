@@ -1020,7 +1020,7 @@ const mainHTML = `<!DOCTYPE html>
           <i class="fas fa-history mr-1 text-purple-500"></i> 과거 내 스킬 참조
           <span class="text-xs text-gray-400 font-normal ml-2">DB에 저장된 유사 스킬 자동 검색</span>
         </h3>
-        <div id="pastSkillsLoading" class="text-sm text-gray-400"><span class="spinner"></span> 유사 스킬 검색 중...</div>
+        <div id="pastSkillsLoading" class="hidden text-sm text-gray-400"><span class="spinner"></span> 유사 스킬 검색 중...</div>
         <div id="pastSkillList" class="hidden space-y-2"></div>
         <p id="pastSkillEmpty" class="hidden text-sm text-gray-400"><i class="fas fa-inbox mr-1"></i> 저장된 유사 스킬이 없습니다. 생성 후 저장하면 이후 참조로 활용됩니다.</p>
       </div>
